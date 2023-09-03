@@ -1,0 +1,265 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Touch Input Test</title>
+    <style>
+        /* Add some basic styling for the debug panel */
+        #debug-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        /* Add styles for the touch pointer */
+        .touch-pointer {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: red;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <!-- Debug panel will be displayed here -->
+    <div id="debug-panel"></div>
+
+    <!-- Include your touch pointer styling -->
+    <div class="touch-pointer" id="touch-pointer"></div>
+
+    <script>
+        // Paste the TouchInput class code here
+
+        class TouchInput {
+          constructor(debugPanelElement) {
+            this.debugPanel = debugPanelElement;
+            this.touchGestures = {};
+            this.activeTouches = [];
+        
+            // Store touch start positions
+            this.touchStartPositions = {};
+        
+            // Set up touch event listeners
+            document.addEventListener('touchstart', this.handleTouchStart.bind(this), false);
+            document.addEventListener('touchmove', this.handleTouchMove.bind(this), false);
+            document.addEventListener('touchend', this.handleTouchEnd.bind(this), false);
+          }
+        
+          bindGesture(gestureName, action) {
+            this.touchGestures[gestureName] = action;
+          }
+        
+          handleTouchStart(event) {
+            event.preventDefault();
+        
+            for (let i = 0; i < event.changedTouches.length; i++) {
+              const touch = event.changedTouches[i];
+              this.activeTouches.push(touch.identifier);
+        
+              // Store touch start positions
+              this.touchStartPositions[touch.identifier] = {
+                x: touch.clientX,
+                y: touch.clientY,
+              };
+            }
+        
+            this.updateDebugPanel();
+          }
+        
+          handleTouchMove(event) {
+            event.preventDefault();
+            this.updateDebugPanel();
+          }
+        
+          handleTouchEnd(event) {
+            event.preventDefault();
+        
+            for (let i = 0; i < event.changedTouches.length; i++) {
+              const touch = event.changedTouches[i];
+              const index = this.activeTouches.indexOf(touch.identifier);
+              if (index !== -1) {
+                this.activeTouches.splice(index, 1);
+              }
+            }
+        
+            this.updateDebugPanel();
+          }
+        
+          updateDebugPanel() {
+            if (this.debugPanel) {
+              this.debugPanel.innerHTML = `
+                <div><strong>Active Touches:</strong> ${this.activeTouches.length}</div>
+                <div><strong>Gestures:</strong></div>
+              `;
+        
+              // Recognize and add gestures to the debug panel
+              for (const gestureName in this.touchGestures) {
+                const action = this.touchGestures[gestureName];
+                const recognized = this.detectGesture(gestureName);
+                this.debugPanel.innerHTML += `
+                  <div>${gestureName}: ${recognized ? '✓' : '✗'}</div>
+                `;
+        
+                // Trigger the action associated with the recognized gesture
+                if (recognized) {
+                  // Implement logic to handle the action
+                  // e.g., execute 'action' in your game
+                  console.log(`Action '${action}' triggered for gesture '${gestureName}'`);
+                }
+              }
+            }
+          }
+        
+          detectGesture(gestureName) {
+            switch (gestureName) {
+              case 'swipeLeft':
+                return this.detectSwipe(1, 0, -1, 0); // Swipe left
+              case 'swipeRight':
+                return this.detectSwipe(-1, 0, 1, 0); // Swipe right
+              case 'swipeUp':
+                return this.detectSwipe(0, 1, 0, -1); // Swipe up
+              case 'swipeDown':
+                return this.detectSwipe(0, -1, 0, 1); // Swipe down
+              case 'pinch':
+                return this.detectPinch(); // Detect pinch gesture
+              case 'spread':
+                return this.detectSpread(); // Detect spread gesture
+              default:
+                return false;
+            }
+          }
+        
+          detectSwipe(dx1, dy1, dx2, dy2) {
+            // Implement swipe detection logic based on the start and current touch positions
+            // You may need to fine-tune these thresholds based on your requirements
+            const swipeDistanceThreshold = 100;
+            const swipeAngleThreshold = Math.PI / 6; // 30 degrees
+        
+            for (const touchId of this.activeTouches) {
+              const startPos = this.touchStartPositions[touchId];
+              const touch = event.touches[0];
+              const dx = touch.clientX - startPos.x;
+              const dy = touch.clientY - startPos.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+        
+              if (distance >= swipeDistanceThreshold) {
+                const angle = Math.atan2(dy, dx);
+                const angleDiff = Math.abs(angle - Math.atan2(dy1, dx1));
+        
+                if (angleDiff <= swipeAngleThreshold) {
+                  return true;
+                }
+              }
+            }
+        
+            return false;
+          }
+        
+          detectPinch() {
+              if (this.activeTouches.length === 2) {
+                const touch1 = this.activeTouches[0];
+                const touch2 = this.activeTouches[1];
+          
+                const startPos1 = this.touchStartPositions[touch1];
+                const startPos2 = this.touchStartPositions[touch2];
+          
+                const currentPos1 = this.getCurrentTouchPosition(touch1);
+                const currentPos2 = this.getCurrentTouchPosition(touch2);
+          
+                const startDistance = this.calculateDistance(startPos1, startPos2);
+                const currentDistance = this.calculateDistance(currentPos1, currentPos2);
+          
+                // You can set a threshold for pinch recognition
+                const pinchThreshold = 50; // Adjust this value based on your game's needs
+          
+                if (currentDistance < startDistance - pinchThreshold) {
+                  return true; // Pinch gesture recognized (fingers are getting closer)
+                }
+              }
+          
+              return false; // No pinch gesture detected
+            }
+          
+            calculateDistance(pos1, pos2) {
+              const dx = pos1.x - pos2.x;
+              const dy = pos1.y - pos2.y;
+              return Math.sqrt(dx * dx + dy * dy);
+            }
+          
+            getCurrentTouchPosition(touchId) {
+              const touch = this.activeTouches.find((t) => t.identifier === touchId);
+              return {
+                x: touch.clientX,
+                y: touch.clientY,
+              };
+            }
+        
+          detectSpread() {
+            if (this.activeTouches.length === 2) {
+              const touch1 = this.activeTouches[0];
+              const touch2 = this.activeTouches[1];
+        
+              const startPos1 = this.touchStartPositions[touch1];
+              const startPos2 = this.touchStartPositions[touch2];
+        
+              const currentPos1 = this.getCurrentTouchPosition(touch1);
+              const currentPos2 = this.getCurrentTouchPosition(touch2);
+        
+              const startDistance = this.calculateDistance(startPos1, startPos2);
+              const currentDistance = this.calculateDistance(currentPos1, currentPos2);
+        
+              // You can set a threshold for spread recognition
+              const spreadThreshold = 50; // Adjust this value based on your game's needs
+        
+              if (currentDistance > startDistance + spreadThreshold) {
+                return true; // Spread (zoom-out) gesture recognized (fingers are getting farther apart)
+              }
+            }
+        
+            return false; // No spread gesture detected
+          }
+        }
+
+        // Create a TouchInput instance
+        const debugPanelElement = document.getElementById('debug-panel');
+        const touchInput = new TouchInput(debugPanelElement);
+
+        // Bind custom gestures to in-game actions
+        touchInput.bindGesture('swipeLeft', 'moveLeft');
+        touchInput.bindGesture('swipeRight', 'moveRight');
+        touchInput.bindGesture('swipeUp', 'moveUp');
+        touchInput.bindGesture('swipeDown', 'moveDown');
+        touchInput.bindGesture('pinch', 'zoomIn');
+        touchInput.bindGesture('spread', 'zoomOut');
+
+        // Handle in-game actions associated with recognized gestures
+        function handleGameAction(action) {
+            // Implement logic to perform the specified in-game action
+            console.log(`Performing action: ${action}`);
+            // ... (your game logic here)
+        }
+
+        // Listen for recognized gestures and trigger game actions
+        debugPanelElement.addEventListener('click', () => {
+            const gestures = touchInput.touchGestures;
+            for (const gestureName in gestures) {
+                const action = gestures[gestureName];
+                const recognized = touchInput.detectGesture(gestureName);
+                if (recognized) {
+                    handleGameAction(action);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
