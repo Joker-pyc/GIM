@@ -1,264 +1,303 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Touch Input Test</title>
+    <title>TouchInput Testing</title>
     <style>
-        /* Add some basic styling for the debug panel */
-        #debug-panel {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        
-        /* Add styles for the touch pointer */
+        /* Define the touch pointer style */
         .touch-pointer {
-            position: absolute;
             width: 20px;
             height: 20px;
             background-color: red;
+            position: absolute;
             border-radius: 50%;
-            pointer-events: none;
-            transform: translate(-50%, -50%);
+            pointer-events: none; /* To prevent pointer events on the touch pointer itself */
+        }
+
+        /* Style for the debug panel */
+        #debug-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            font-family: Arial, sans-serif;
+            z-index: 1000;
         }
     </style>
 </head>
 <body>
-    <!-- Debug panel will be displayed here -->
     <div id="debug-panel"></div>
 
-    <!-- Include your touch pointer styling -->
-    <div class="touch-pointer" id="touch-pointer"></div>
-
+    
     <script>
-        // Paste the TouchInput class code here
 
-        class TouchInput {
-          constructor(debugPanelElement) {
-            this.debugPanel = debugPanelElement;
-            this.touchGestures = {};
-            this.activeTouches = [];
-        
-            // Store touch start positions
-            this.touchStartPositions = {};
-        
-            // Set up touch event listeners
-            document.addEventListener('touchstart', this.handleTouchStart.bind(this), false);
-            document.addEventListener('touchmove', this.handleTouchMove.bind(this), false);
-            document.addEventListener('touchend', this.handleTouchEnd.bind(this), false);
-          }
-        
-          bindGesture(gestureName, action) {
-            this.touchGestures[gestureName] = action;
-          }
-        
-          handleTouchStart(event) {
-            event.preventDefault();
-        
-            for (let i = 0; i < event.changedTouches.length; i++) {
-              const touch = event.changedTouches[i];
-              this.activeTouches.push(touch.identifier);
-        
-              // Store touch start positions
-              this.touchStartPositions[touch.identifier] = {
-                x: touch.clientX,
-                y: touch.clientY,
-              };
-            }
-        
-            this.updateDebugPanel();
-          }
-        
-          handleTouchMove(event) {
-            event.preventDefault();
-            this.updateDebugPanel();
-          }
-        
-          handleTouchEnd(event) {
-            event.preventDefault();
-        
-            for (let i = 0; i < event.changedTouches.length; i++) {
-              const touch = event.changedTouches[i];
-              const index = this.activeTouches.indexOf(touch.identifier);
-              if (index !== -1) {
-                this.activeTouches.splice(index, 1);
-              }
-            }
-        
-            this.updateDebugPanel();
-          }
-        
-          updateDebugPanel() {
-            if (this.debugPanel) {
-              this.debugPanel.innerHTML = `
-                <div><strong>Active Touches:</strong> ${this.activeTouches.length}</div>
-                <div><strong>Gestures:</strong></div>
-              `;
-        
-              // Recognize and add gestures to the debug panel
-              for (const gestureName in this.touchGestures) {
-                const action = this.touchGestures[gestureName];
-                const recognized = this.detectGesture(gestureName);
-                this.debugPanel.innerHTML += `
-                  <div>${gestureName}: ${recognized ? '✓' : '✗'}</div>
-                `;
-        
-                // Trigger the action associated with the recognized gesture
-                if (recognized) {
-                  // Implement logic to handle the action
-                  // e.g., execute 'action' in your game
-                  console.log(`Action '${action}' triggered for gesture '${gestureName}'`);
-                }
-              }
-            }
-          }
-        
-          detectGesture(gestureName) {
-            switch (gestureName) {
-              case 'swipeLeft':
-                return this.detectSwipe(1, 0, -1, 0); // Swipe left
-              case 'swipeRight':
-                return this.detectSwipe(-1, 0, 1, 0); // Swipe right
-              case 'swipeUp':
-                return this.detectSwipe(0, 1, 0, -1); // Swipe up
-              case 'swipeDown':
-                return this.detectSwipe(0, -1, 0, 1); // Swipe down
-              case 'pinch':
-                return this.detectPinch(); // Detect pinch gesture
-              case 'spread':
-                return this.detectSpread(); // Detect spread gesture
-              default:
-                return false;
-            }
-          }
-        
-          detectSwipe(dx1, dy1, dx2, dy2) {
-            // Implement swipe detection logic based on the start and current touch positions
-            // You may need to fine-tune these thresholds based on your requirements
-            const swipeDistanceThreshold = 100;
-            const swipeAngleThreshold = Math.PI / 6; // 30 degrees
-        
-            for (const touchId of this.activeTouches) {
-              const startPos = this.touchStartPositions[touchId];
-              const touch = event.touches[0];
-              const dx = touch.clientX - startPos.x;
-              const dy = touch.clientY - startPos.y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-        
-              if (distance >= swipeDistanceThreshold) {
-                const angle = Math.atan2(dy, dx);
-                const angleDiff = Math.abs(angle - Math.atan2(dy1, dx1));
-        
-                if (angleDiff <= swipeAngleThreshold) {
-                  return true;
-                }
-              }
-            }
-        
-            return false;
-          }
-        
-          detectPinch() {
-              if (this.activeTouches.length === 2) {
-                const touch1 = this.activeTouches[0];
-                const touch2 = this.activeTouches[1];
-          
-                const startPos1 = this.touchStartPositions[touch1];
-                const startPos2 = this.touchStartPositions[touch2];
-          
-                const currentPos1 = this.getCurrentTouchPosition(touch1);
-                const currentPos2 = this.getCurrentTouchPosition(touch2);
-          
-                const startDistance = this.calculateDistance(startPos1, startPos2);
-                const currentDistance = this.calculateDistance(currentPos1, currentPos2);
-          
-                // You can set a threshold for pinch recognition
-                const pinchThreshold = 50; // Adjust this value based on your game's needs
-          
-                if (currentDistance < startDistance - pinchThreshold) {
-                  return true; // Pinch gesture recognized (fingers are getting closer)
-                }
-              }
-          
-              return false; // No pinch gesture detected
-            }
-          
-            calculateDistance(pos1, pos2) {
-              const dx = pos1.x - pos2.x;
-              const dy = pos1.y - pos2.y;
-              return Math.sqrt(dx * dx + dy * dy);
-            }
-          
-            getCurrentTouchPosition(touchId) {
-              const touch = this.activeTouches.find((t) => t.identifier === touchId);
-              return {
-                x: touch.clientX,
-                y: touch.clientY,
-              };
-            }
-        
-          detectSpread() {
-            if (this.activeTouches.length === 2) {
-              const touch1 = this.activeTouches[0];
-              const touch2 = this.activeTouches[1];
-        
-              const startPos1 = this.touchStartPositions[touch1];
-              const startPos2 = this.touchStartPositions[touch2];
-        
-              const currentPos1 = this.getCurrentTouchPosition(touch1);
-              const currentPos2 = this.getCurrentTouchPosition(touch2);
-        
-              const startDistance = this.calculateDistance(startPos1, startPos2);
-              const currentDistance = this.calculateDistance(currentPos1, currentPos2);
-        
-              // You can set a threshold for spread recognition
-              const spreadThreshold = 50; // Adjust this value based on your game's needs
-        
-              if (currentDistance > startDistance + spreadThreshold) {
-                return true; // Spread (zoom-out) gesture recognized (fingers are getting farther apart)
-              }
-            }
-        
-            return false; // No spread gesture detected
+class TouchInput {
+    constructor(debugPanelElement) {
+      this.debugPanel = debugPanelElement;
+      this.touchGestures = {};
+      this.activeTouches = {};
+      this.touchStartPositions = {};
+      this.showTouchPointer = false;
+  
+      // Create a touch pointer element
+      this.touchPointer = document.createElement('div');
+      this.touchPointer.className = 'touch-pointer';
+      document.body.appendChild(this.touchPointer);
+  
+      // Set up a toggle button for the touch pointer
+      this.setupTouchPointerToggle();
+  
+      // Bind event handlers to avoid rebinding in addEventListener
+      this.handleTouchStart = this.handleTouchStart.bind(this);
+      this.handleTouchMove = this.handleTouchMove.bind(this);
+      this.handleTouchEnd = this.handleTouchEnd.bind(this);
+  
+      // Throttle touch move events
+      this.throttledUpdateDebugPanel = null;
+  
+      // Set up touch event listeners
+      document.addEventListener('touchstart', this.handleTouchStart, { passive: false });
+      document.addEventListener('touchmove', this.handleTouchMove, { passive: false });
+      document.addEventListener('touchend', this.handleTouchEnd, { passive: false });
+    }
+  
+    bindGesture(gestureName, action) {
+      this.touchGestures[gestureName] = action;
+    }
+  
+    handleTouchStart(event) {
+      event.preventDefault();
+  
+      for (let i = 0; i < event.changedTouches.length; i++) {
+        const touch = event.changedTouches[i];
+        this.activeTouches[touch.identifier] = touch;
+  
+        // Store touch start positions
+        this.touchStartPositions[touch.identifier] = {
+          x: touch.clientX,
+          y: touch.clientY,
+        };
+      }
+  
+      this.updateDebugPanel(event);
+    }
+  
+    handleTouchMove(event) {
+      event.preventDefault();
+  
+      // Throttle touch move events
+      if (!this.throttledUpdateDebugPanel) {
+        this.throttledUpdateDebugPanel = setTimeout(() => {
+          this.updateDebugPanel(event);
+          this.throttledUpdateDebugPanel = null;
+        }, 100);
+      }
+    }
+  
+    handleTouchEnd(event) {
+      event.preventDefault();
+  
+      for (let i = 0; i < event.changedTouches.length; i++) {
+        const touch = event.changedTouches[i];
+        delete this.activeTouches[touch.identifier];
+      }
+  
+      this.updateDebugPanel(event);
+    }
+  
+    updateDebugPanel(event) {
+      if (this.debugPanel) {
+        const activeTouchesCount = Object.keys(this.activeTouches).length;
+        const gestureEntries = Object.entries(this.touchGestures);
+  
+        const panelContent = document.createElement('div');
+        panelContent.innerHTML = `
+          <div><strong>Active Touches:</strong> ${activeTouchesCount}</div>
+          <div><strong>Gestures:</strong></div>
+        `;
+  
+        for (const [gestureName, action] of gestureEntries) {
+          const recognized = this.detectGesture(event, gestureName);
+          panelContent.innerHTML += `
+            <div>${gestureName}: ${recognized ? '✓' : '✗'}</div>
+          `;
+  
+          if (recognized) {
+            console.log(`Action '${action}' triggered for gesture '${gestureName}'`);
           }
         }
+  
+        // Replace the existing content with the updated panel
+        this.debugPanel.innerHTML = '';
+        this.debugPanel.appendChild(panelContent);
+      }
+    }
+  
+    detectGesture(event, gestureName) {
+      switch (gestureName) {
+        case 'swipeLeft':
+          return this.detectSwipe(event, 1, 0, -1, 0);
+        case 'swipeRight':
+          return this.detectSwipe(event, -1, 0, 1, 0);
+        case 'swipeUp':
+          return this.detectSwipe(event, 0, 1, 0, -1);
+        case 'swipeDown':
+          return this.detectSwipe(event, 0, -1, 0, 1);
+        case 'pinch':
+          return this.detectPinch();
+        case 'spread':
+          return this.detectSpread();
+        default:
+          return false;
+      }
+    }
+  
+    detectSwipe(event, dx1, dy1, dx2, dy2) {
+        const swipeDistanceThreshold = 100;
+        const swipeAngleThreshold = Math.PI / 6; // 30 degrees
+    
+        for (const touchId in this.activeTouches) {
+          const startPos = this.touchStartPositions[touchId];
+          const touchesArray = Array.from(event.touches); // Convert touches to an array
+          const touch = touchesArray.find((t) => t.identifier == touchId);
+          if (!touch) continue;
+    
+          const dx = touch.clientX - startPos.x;
+          const dy = touch.clientY - startPos.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+    
+          if (distance >= swipeDistanceThreshold) {
+            const angle = Math.atan2(dy, dx);
+            const angleDiff = Math.abs(angle - Math.atan2(dy1, dx1));
+    
+            if (angleDiff <= swipeAngleThreshold) {
+              return true;
+            }
+          }
+        }
+    
+        return false;
+      }
+  
+    detectPinch() {
+      if (Object.keys(this.activeTouches).length === 2) {
+        const touchIds = Object.keys(this.activeTouches);
+        const touch1 = this.activeTouches[touchIds[0]];
+        const touch2 = this.activeTouches[touchIds[1]];
+  
+        const startPos1 = this.touchStartPositions[touch1.identifier];
+        const startPos2 = this.touchStartPositions[touch2.identifier];
+        const currentPos1 = this.getCurrentTouchPosition(touch1);
+        const currentPos2 = this.getCurrentTouchPosition(touch2);
+  
+        const startDistance = this.calculateDistance(startPos1, startPos2);
+        const currentDistance = this.calculateDistance(currentPos1, currentPos2);
+  
+        const pinchThreshold = 50;
+  
+        if (currentDistance < startDistance - pinchThreshold) {
+          return true;
+        }
+      }
+  
+      return false;
+    }
+  
+    calculateDistance(pos1, pos2) {
+      const dx = pos1.x - pos2.x;
+      const dy = pos1.y - pos2.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+  
+    getCurrentTouchPosition(touch) {
+      return {
+        x: touch.clientX,
+        y: touch.clientY,
+      };
+    }
+  
+    detectSpread() {
+      if (Object.keys(this.activeTouches).length === 2) {
+        const touchIds = Object.keys(this.activeTouches);
+        const touch1 = this.activeTouches[touchIds[0]];
+        const touch2 = this.activeTouches[touchIds[1]];
+  
+        const startPos1 = this.touchStartPositions[touch1.identifier];
+        const startPos2 = this.touchStartPositions[touch2.identifier];
+        const currentPos1 = this.getCurrentTouchPosition(touch1);
+        const currentPos2 = this.getCurrentTouchPosition(touch2);
+  
+        const startDistance = this.calculateDistance(startPos1, startPos2);
+        const currentDistance = this.calculateDistance(currentPos1, currentPos2);
+  
+        const spreadThreshold = 50;
+  
+        if (currentDistance > startDistance + spreadThreshold) {
+          return true;
+        }
+      }
+  
+      return false;
+    }
+  
+    toggleTouchPointer() {
+      this.showTouchPointer = !this.showTouchPointer;
+      this.updateTouchPointer();
+    }
+  
+    updateTouchPointer() {
+      if (this.showTouchPointer && Object.keys(this.activeTouches).length > 0) {
+        const touchId = Object.keys(this.activeTouches)[0];
+        const touch = this.activeTouches[touchId];
+        const touchPosition = this.getCurrentTouchPosition(touch);
+        this.touchPointer.style.left = touchPosition.x + 'px';
+        this.touchPointer.style.top = touchPosition.y + 'px';
+        this.touchPointer.style.display = 'block';
+      } else {
+        this.touchPointer.style.display = 'none';
+      }
+    }
+  
+    setupTouchPointerToggle() {
+      const toggleButton = document.createElement('button');
+      toggleButton.textContent = 'Toggle Touch Pointer';
+      toggleButton.addEventListener('click', () => {
+        this.toggleTouchPointer();
+      });
+      this.debugPanel.appendChild(toggleButton);
+    }
+  
+    // Cleanup method to remove event listeners
+    cleanup() {
+      document.removeEventListener('touchstart', this.handleTouchStart);
+      document.removeEventListener('touchmove', this.handleTouchMove);
+      document.removeEventListener('touchend', this.handleTouchEnd);
+    }
+  }
+ 
+  
 
-        // Create a TouchInput instance
+        // Create an instance of the TouchInput class
         const debugPanelElement = document.getElementById('debug-panel');
         const touchInput = new TouchInput(debugPanelElement);
 
-        // Bind custom gestures to in-game actions
-        touchInput.bindGesture('swipeLeft', 'moveLeft');
-        touchInput.bindGesture('swipeRight', 'moveRight');
-        touchInput.bindGesture('swipeUp', 'moveUp');
-        touchInput.bindGesture('swipeDown', 'moveDown');
-        touchInput.bindGesture('pinch', 'zoomIn');
-        touchInput.bindGesture('spread', 'zoomOut');
+        // Bind custom gestures (example gestures)
+        touchInput.bindGesture('swipeLeft', 'Swipe Left');
+        touchInput.bindGesture('swipeRight', 'Swipe Right');
+        touchInput.bindGesture('swipeUp', 'Swipe Up');
+        touchInput.bindGesture('swipeDown', 'Swipe Down');
+        touchInput.bindGesture('pinch', 'Pinch');
+        touchInput.bindGesture('spread', 'Spread');
+        touchInput.bindGesture('customGesture1', 'Custom Action 1');
+        touchInput.bindGesture('customGesture2', 'Custom Action 2');
 
-        // Handle in-game actions associated with recognized gestures
-        function handleGameAction(action) {
-            // Implement logic to perform the specified in-game action
-            console.log(`Performing action: ${action}`);
-            // ... (your game logic here)
-        }
-
-        // Listen for recognized gestures and trigger game actions
-        debugPanelElement.addEventListener('click', () => {
-            const gestures = touchInput.touchGestures;
-            for (const gestureName in gestures) {
-                const action = gestures[gestureName];
-                const recognized = touchInput.detectGesture(gestureName);
-                if (recognized) {
-                    handleGameAction(action);
-                }
-            }
+        // Clean up event listeners when the page is unloaded
+        window.addEventListener('beforeunload', () => {
+            touchInput.cleanup();
         });
     </script>
 </body>
